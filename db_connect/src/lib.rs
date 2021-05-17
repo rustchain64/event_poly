@@ -11,7 +11,7 @@ async fn main() -> Result<(), sqlx::Error> {
     //  etc.
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://postgres:password@localhost/test")
+        .connect("postgres://postgres:polypass@localhost/test")
         .await?;
 
     // Make a simple query to return the given parameter

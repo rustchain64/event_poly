@@ -4,8 +4,11 @@
 //! which may choose to limit which messages they receive.
 //! cargo run publisher inproc://nng/event
 //! cargo run subscriber inproc://nng/event
+//!
+//! cargo run publisher ipc://nng/event
+//! cargo run subscriber ipc://nng/event
 use db_connect;
-use rand;
+use rand::prelude::*;
 
 use nng::{
     options::{protocol::pubsub::Subscribe, Options},
@@ -58,8 +61,12 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
     s.listen(url)?;
 
     loop {
-        // Sleep for a little bit before sending the next message.
-        thread::sleep(Duration::from_secs(3));
+        let mut rng = rand::thread_rng();
+        let mut nums: Vec<u64> = (1..4).collect();
+        nums.shuffle(&mut rng);
+        println!(">>>> Sleep Duration: {:?}", nums[1]);
+        // Sleep before sending the next message.
+        thread::sleep(Duration::from_secs(nums[1]));
 
         // Load the number of subscribers and send the value across
         let data = count.load(Ordering::Relaxed) as u64;
@@ -78,6 +85,8 @@ fn subscriber(url: &str) -> Result<(), nng::Error> {
     s.set_opt::<Subscribe>(all_topics)?;
 
     loop {
+        // Sleep for a little bit before sending the next message.
+        thread::sleep(Duration::from_secs(10));
         let msg = s.recv()?;
         let subs = usize::from_le_bytes(msg[..].try_into().unwrap());
         println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
