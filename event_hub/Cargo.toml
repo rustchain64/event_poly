@@ -1,12 +1,10 @@
 [package]
 authors = ["Wesley Parr <rustchain64@gmail.com>"]
 edition = "2018"
-name = "adder"
+name = "event_hub"
 version = "0.1.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-add-one = {path = "../add-one"}
+db_connect = {path = "../db_connect"}
 nng = ""
 rand = "0.8.3"
