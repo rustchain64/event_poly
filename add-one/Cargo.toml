@@ -1,9 +1,11 @@
 [package]
-name = "publisher"
-version = "0.1.0"
-authors = ["Wxp97"]
+authors = ["Wesley Parr <rustchain64@gmail.com>"]
 edition = "2018"
+name = "add-one"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+nng = ""
+rand = "0.8.3"
