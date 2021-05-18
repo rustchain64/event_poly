@@ -5,6 +5,9 @@ name = "event_hub"
 version = "0.1.0"
 
 [dependencies]
+chrono = ""
 db_connect = {path = "../db_connect"}
 nng = ""
 rand = "0.8.3"
+serde = {version = "1.0", features = ["derive"]}
+serde_json = "1.0"

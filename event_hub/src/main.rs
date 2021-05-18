@@ -8,6 +8,7 @@
 //! cargo run publisher ipc://nng/event
 //! cargo run subscriber ipc://nng/event
 use db_connect;
+//use std::{convert::TryInto, env, process, time::SystemTime};
 use rand::prelude::*;
 
 use nng::{
@@ -23,7 +24,38 @@ use std::{
     },
     thread,
     time::Duration,
+    time::SystemTime,
 };
+
+use chrono::offset::Utc;
+use chrono::DateTime;
+//use std::time::SystemTime;
+
+use serde::{Deserialize, Serialize};
+//use serde_json::Result;
+//use std::fs::File;
+//let x = ::serde_json::from_reader(File::open("data.json")?)?;
+// mandatory lines to use json in rust
+#[derive(Debug, Deserialize, Serialize)]
+struct MintCoins {
+    time: String,
+    amount: f32,
+    account_id: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct TransferCoins {
+    time: String,
+    amount: f32,
+    account_id: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+struct BurnCoins {
+    time: String,
+    amount: f32,
+    account_id: i32,
+}
 
 /// Entry point of the application.
 fn main() -> Result<(), nng::Error> {
@@ -68,10 +100,56 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
         // Sleep before sending the next message.
         thread::sleep(Duration::from_secs(nums[1]));
 
-        // Load the number of subscribers and send the value across
-        let data = count.load(Ordering::Relaxed) as u64;
-        println!("PUBLISHER: SENDING {}", data);
-        s.send(data.to_le_bytes())?;
+        let system_time = SystemTime::now();
+        let datetime: DateTime<Utc> = system_time.into();
+
+        if nums[1] == 1 {
+            let mint_coin = MintCoins {
+                time: datetime.format("%d/%m/%Y %T").to_string(),
+                amount: 11.00,
+                account_id: 1234,
+            };
+            println!("MESSAGE >> {:?}", mint_coin);
+
+            let serialized = serde_json::to_string(&mint_coin).unwrap();
+            s.send(serialized.as_bytes())?;
+        }
+
+        if nums[1] == 1 {
+            let mint_coin = MintCoins {
+                time: datetime.format("%d/%m/%Y %T").to_string(),
+                amount: 11.00,
+                account_id: 1234,
+            };
+            println!("MESSAGE >> {:?}", mint_coin);
+
+            let serialized = serde_json::to_string(&mint_coin).unwrap();
+            s.send(serialized.as_bytes())?;
+        }
+
+        if nums[1] == 2 {
+            let transfer_coin = TransferCoins {
+                time: datetime.format("%d/%m/%Y %T").to_string(),
+                amount: 11.00,
+                account_id: 1234,
+            };
+            println!("MESSAGE >> {:?}", transfer_coin);
+
+            let serialized = serde_json::to_string(&transfer_coin).unwrap();
+            s.send(serialized.as_bytes())?;
+        }
+
+        if nums[1] == 3 {
+            let burn_coin = BurnCoins {
+                time: datetime.format("%d/%m/%Y %T").to_string(),
+                amount: 11.00,
+                account_id: 1234,
+            };
+            println!("MESSAGE >> {:?}", burn_coin);
+
+            let serialized = serde_json::to_string(&burn_coin).unwrap();
+            s.send(serialized.as_bytes())?;
+        }
     }
 }
 
@@ -87,8 +165,14 @@ fn subscriber(url: &str) -> Result<(), nng::Error> {
     loop {
         // Sleep for a little bit before sending the next message.
         thread::sleep(Duration::from_secs(10));
-        let msg = s.recv()?;
-        let subs = usize::from_le_bytes(msg[..].try_into().unwrap());
-        println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
+        let mut msg = s.recv()?;
+        // Stick the Flag Message on the event data
+        msg.push_front(b"Message, ");
+        let subs: Subscribe = serde_json::from_slice<'_>(&msg).unwrap();
+        //let subs = usize::nng_msg_header_len(msg);
+        println!("SUBSCRIBERS EVENT DATA {:?} ", subs);
+
+        s.send(msg)?;
+        //Ok(())
     }
 }
