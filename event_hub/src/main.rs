@@ -7,7 +7,7 @@
 //!
 //! cargo run publisher ipc://nng/event
 //! cargo run subscriber ipc://nng/event
-use db_connect;
+mod connect;
 //use std::{convert::TryInto, env, process, time::SystemTime};
 use rand::prelude::*;
 
@@ -32,9 +32,6 @@ use chrono::DateTime;
 //use std::time::SystemTime;
 
 use serde::{Deserialize, Serialize};
-//use serde_json::Result;
-//use std::fs::File;
-//let x = ::serde_json::from_reader(File::open("data.json")?)?;
 // mandatory lines to use json in rust
 #[derive(Debug, Deserialize, Serialize)]
 struct MintCoins {
@@ -59,6 +56,8 @@ struct BurnCoins {
 
 /// Entry point of the application.
 fn main() -> Result<(), nng::Error> {
+    let connect_psdb = connect::main();
+    println!("How do you feeel OK? {:?}", connect_psdb);
     // Begin by parsing the arguments to determine whether this is the
     // subscriber or the publisher and what URL to connect with.
     let args: Vec<_> = env::args().take(3).collect();
@@ -109,22 +108,14 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
                 amount: 11.00,
                 account_id: 1234,
             };
-            println!("MESSAGE >> {:?}", mint_coin);
-
             let serialized = serde_json::to_string(&mint_coin).unwrap();
-            s.send(serialized.as_bytes())?;
-        }
+            println!("MESSAGE >> {:?}", serialized);
+            // call DB
+            //s.send(serialized.as_bytes())?;
 
-        if nums[1] == 1 {
-            let mint_coin = MintCoins {
-                time: datetime.format("%d/%m/%Y %T").to_string(),
-                amount: 11.00,
-                account_id: 1234,
-            };
-            println!("MESSAGE >> {:?}", mint_coin);
-
-            let serialized = serde_json::to_string(&mint_coin).unwrap();
-            s.send(serialized.as_bytes())?;
+            let data = count.load(Ordering::Relaxed) as u64;
+            println!("PUBLISHER: SENDING {}", data);
+            s.send(data.to_le_bytes())?;
         }
 
         if nums[1] == 2 {
@@ -133,10 +124,14 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
                 amount: 11.00,
                 account_id: 1234,
             };
-            println!("MESSAGE >> {:?}", transfer_coin);
-
             let serialized = serde_json::to_string(&transfer_coin).unwrap();
-            s.send(serialized.as_bytes())?;
+            println!("MESSAGE >> {:?}", serialized);
+            // call DB
+            //s.send(serialized.as_bytes())?;
+
+            let data = count.load(Ordering::Relaxed) as u64;
+            println!("PUBLISHER: SENDING {}", data);
+            s.send(data.to_le_bytes())?;
         }
 
         if nums[1] == 3 {
@@ -145,10 +140,15 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
                 amount: 11.00,
                 account_id: 1234,
             };
-            println!("MESSAGE >> {:?}", burn_coin);
 
             let serialized = serde_json::to_string(&burn_coin).unwrap();
-            s.send(serialized.as_bytes())?;
+            println!("MESSAGE >> {:?}", serialized);
+            // call DB
+            //s.send(serialized.as_bytes())?;
+
+            let data = count.load(Ordering::Relaxed) as u64;
+            println!("PUBLISHER: SENDING {}", data);
+            s.send(data.to_le_bytes())?;
         }
     }
 }
@@ -165,14 +165,19 @@ fn subscriber(url: &str) -> Result<(), nng::Error> {
     loop {
         // Sleep for a little bit before sending the next message.
         thread::sleep(Duration::from_secs(10));
-        let mut msg = s.recv()?;
-        // Stick the Flag Message on the event data
-        msg.push_front(b"Message, ");
-        let subs: Subscribe = serde_json::from_slice<'_>(&msg).unwrap();
-        //let subs = usize::nng_msg_header_len(msg);
-        println!("SUBSCRIBERS EVENT DATA {:?} ", subs);
+        // query database
+        let msg = s.recv()?;
 
-        s.send(msg)?;
+        let subs = usize::from_le_bytes(msg[..].try_into().unwrap());
+        println!("SUBSCRIBER: THERE ARE {} SUBSCRIBERS", subs);
+
+        // // Stick the Flag Message on the event data
+        // msg.push_front(b"Message, ");
+        // let subs: Subscribe = serde_json::from_slice<'a, Subscribe>(&msg).unwrap();
+        // //let subs = usize::nng_msg_header_len(msg);
+        // println!("SUBSCRIBERS EVENT DATA {:?} ", subs);
+
+        //s.send(msg)?;
         //Ok(())
     }
 }

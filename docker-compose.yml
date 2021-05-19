@@ -19,3 +19,5 @@ services:
       - ./db:/docker-entrypoint-initdb.d/
     ports:
       - 5432:5432
+
+      # docker-compose exec postgres bash
