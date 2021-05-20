@@ -1,13 +1,14 @@
-//! Pub/Sub (topics & broadcast) example.
+//! Pub/Sub (topics & broadcast).
 //!
 //! This pattern is used to allow a single broadcaster to publish messages to many subscribers,
 //! which may choose to limit which messages they receive.
 //! cargo run publisher inproc://nng/event
 //! cargo run subscriber inproc://nng/event
 //!
-//! cargo run publisher ipc://nng/event
-//! cargo run subscriber ipc://nng/event
-mod connect;
+//! cargo run publisher ipc://nng
+//! cargo run subscriber ipc://nng
+mod connect_fetch_all_events;
+mod connect_insert;
 //use std::{convert::TryInto, env, process, time::SystemTime};
 use rand::prelude::*;
 
@@ -56,9 +57,6 @@ struct BurnCoins {
 
 /// Entry point of the application.
 fn main() -> Result<(), nng::Error> {
-    let connect_psdb = connect::main();
-    println!("How do you feeel OK? {:?}", connect_psdb);
-    // Begin by parsing the arguments to determine whether this is the
     // subscriber or the publisher and what URL to connect with.
     let args: Vec<_> = env::args().take(3).collect();
 
@@ -71,10 +69,7 @@ fn main() -> Result<(), nng::Error> {
         }
     }
 }
-// resource https://nng.nanomsg.org/man/v1.2.2/nng_inproc.7
-//inproc://, followed by an arbitrary string of text, terminated by a NUL byte
-//cargo run --example pubsub publisher inproc://nng/event
-//cargo run --example pubsub subscriber inproc://nng/listen
+
 /// Run the publisher portion of the program.
 fn publisher(url: &str) -> Result<(), nng::Error> {
     let s = Socket::new(Protocol::Pub0)?;
@@ -98,6 +93,10 @@ fn publisher(url: &str) -> Result<(), nng::Error> {
         println!(">>>> Sleep Duration: {:?}", nums[1]);
         // Sleep before sending the next message.
         thread::sleep(Duration::from_secs(nums[1]));
+
+        let connect_psdb = connect_insert::main();
+        // returns the id
+        println!("PUBLISH INSERT EVENT RESPONSE ::  OK? {:?}", connect_psdb);
 
         let system_time = SystemTime::now();
         let datetime: DateTime<Utc> = system_time.into();
@@ -165,6 +164,10 @@ fn subscriber(url: &str) -> Result<(), nng::Error> {
     loop {
         // Sleep for a little bit before sending the next message.
         thread::sleep(Duration::from_secs(10));
+
+        let connect_psdb = connect_fetch_all_events::main();
+        // returns the id
+        println!("PUBLISH INSERT EVENT RESPONSE ::  OK? {:?}", connect_psdb);
         // query database
         let msg = s.recv()?;
 
